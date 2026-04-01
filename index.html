@@ -3,58 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yanis Game</title>
+    <title>CACA POMPE MAN : THE GAME</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+        body { margin: 0; background: #2d1b0d; overflow: hidden; touch-action: none; font-family: 'Luckiest+Guy', cursive; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: gold; font-weight: bold; pointer-events: none; }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: #f1c40f; font-size: 30px; pointer-events: none; text-shadow: 3px 3px 0 #000; z-index: 10; }
+        #lyrics { position: absolute; bottom: 50px; width: 100%; text-align: center; color: #fff; font-size: 24px; text-shadow: 0 0 10px #ff00ff; pointer-events: none; z-index: 5; }
+        #menu { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; }
+        .btn { background: #8b4513; color: #fff; border: 4px solid #f1c40f; padding: 20px 40px; font-size: 25px; font-family: 'Luckiest Guy'; cursor: pointer; border-radius: 20px; box-shadow: 0 10px 0 #5d2e0a; }
+        .btn:active { transform: translateY(5px); box-shadow: 0 5px 0 #5d2e0a; }
+        h1 { font-size: 50px; color: #f1c40f; margin: 0; text-shadow: 5px 5px 0 #8b4513; text-align: center; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div>SCORE: <span id="score">0</span></div>
-        <div>VIES: <span id="vie">3</span></div>
+
+    <div id="ui">SCORE: <span id="val">0</span></div>
+    <div id="lyrics">PRÊT POUR LA POMPE ?</div>
+
+    <div id="menu">
+        <h1>CACA POMPE MAN</h1>
+        <p style="color: #f1c40f; font-size: 20px;">Esquive les cacas astéroïdes !</p>
+        <button class="btn" onclick="start()">START THE CACA</button>
     </div>
-    <canvas id="gameCanvas"></canvas>
+
+    <canvas id="game"></canvas>
+
     <script>
-        const canvas = document.getElementById('gameCanvas');
+        const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('val');
+        const lyricEl = document.getElementById('lyrics');
+        const menu = document.getElementById('menu');
+
+        let player = { x: 0, y: 0, size: 90, targetX: 0 };
+        let cacas = [], score = 0, active = false;
+        
+        // Paroles de la légende
+        const paroles = ["CACA CACA", "POMPE MAN DELUXE", "ÇAA POUSSE FORT", "CACA DANS L'ESPACE", "POMPE POUR TA VIE", "ATTENTION AU CACA !"];
+        let lyricIndex = 0;
+
+        const img = new Image(); img.src = 'image.JPEG';
+        const music = new Audio('caca.mp3'); music.loop = true;
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let score = 0, vie = 3, gameActive = true;
-        const img = new Image();
-        img.src = 'image.JPEG'; // Respecte tes majuscules !
-        const audio = new Audio('caca.mp3');
-        audio.loop = true;
-
-        let target = { x: 50, y: 50, size: 100, sx: 4, sy: 4 };
-
-        function draw() {
-            if (!gameActive) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, target.x, target.y, target.size, target.size);
-            target.x += target.sx; target.y += target.sy;
-            if (target.x < 0 || target.x > canvas.width - target.size) target.sx *= -1;
-            if (target.y < 0 || target.y > canvas.height - target.size) target.sy *= -1;
-            requestAnimationFrame(draw);
+        function start() {
+            score = 0; cacas = []; active = true;
+            player.x = canvas.width / 2 - 45; player.y = canvas.height - 180;
+            player.targetX = player.x;
+            menu.style.display = 'none';
+            music.play();
+            spawnCaca();
+            changeLyrics();
+            animate();
         }
 
-        window.addEventListener('touchstart', (e) => {
-            if (!gameActive) return;
-            if (audio.paused) audio.play();
-            const t = e.touches[0];
-            if (t.clientX >= target.x && t.clientX <= target.x + target.size && t.clientY >= target.y && t.clientY <= target.y + target.size) {
-                score++; document.getElementById('score').innerText = score;
-                target.x = Math.random() * (canvas.width - 100);
-                target.y = Math.random() * (canvas.height - 100);
-                target.sx *= 1.1; target.sy *= 1.1;
-            } else {
-                vie--; document.getElementById('vie').innerText = vie;
-                if (vie <= 0) { gameActive = false; alert("Perdu ! Score: " + score); location.reload(); }
-            }
+        function changeLyrics() {
+            if(!active) return;
+            lyricEl.innerText = paroles[lyricIndex];
+            lyricIndex = (lyricIndex + 1) % paroles.length;
+            setTimeout(changeLyrics, 2000);
+        }
+
+        function spawnCaca() {
+            if(!active) return;
+            cacas.push({
+                x: Math.random() * (canvas.width - 50),
+                y: -60,
+                size: Math.random() * 50 + 40,
+                speed: Math.random() * 4 + (score / 200) + 3,
+                rot: Math.random() * Math.PI * 2,
+                rotSpd: Math.random() * 0.1 - 0.05
+            });
+            setTimeout(spawnCaca, Math.max(150, 800 - score / 5));
+        }
+
+        canvas.addEventListener('touchmove', (e) => {
+            player.targetX = e.touches[0].clientX - player.size / 2;
         });
-        img.onload = draw;
+
+        function drawCaca(c) {
+            ctx.save();
+            ctx.translate(c.x + c.size/2, c.y + c.size/2);
+            ctx.rotate(c.rot);
+            ctx.font = `${c.size}px serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("💩", 0, 0); // L'astéroïde caca
+            ctx.restore();
+        }
+
+        function animate() {
+            if(!active) return;
+            ctx.fillStyle = '#2d1b0d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Joueur suit le doigt
+            player.x += (player.targetX - player.x) * 0.2;
+
+            // Dessin Yanis
+            ctx.drawImage(img, player.x, player.y, player.size, player.size);
+
+            // Gestion des cacas
+            cacas.forEach((c, i) => {
+                c.y += c.speed;
+                c.rot += c.rotSpd;
+                drawCaca(c);
+
+                // Collision simplifiée
+                if (c.y + c.size > player.y + 20 && c.y < player.y + player.size - 20 &&
+                    c.x + c.size > player.x + 20 && c.x < player.x + player.size - 20) {
+                    gameOver();
+                }
+
+                if(c.y > canvas.height) {
+                    cacas.splice(i, 1);
+                    score++;
+                    scoreEl.innerText = score;
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function gameOver() {
+            active = false;
+            music.pause();
+            menu.style.display = 'flex';
+            menu.innerHTML = `<h1>T'AS TOUCHÉ LE CACA !</h1><p style='font-size:25px'>Score: ${score}</p><button class="btn" onclick="start()">RE-POMPER</button>`;
+        }
     </script>
 </body>
 </html>
