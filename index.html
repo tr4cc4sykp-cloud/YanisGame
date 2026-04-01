@@ -3,43 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CYBER-CACA : OMEGA SOUND EDITION</title>
+    <title>CYBER-CACA : ELITE ENGINE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         :root { --neon: #00ffff; --pink: #ff00ff; }
-        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Orbitron', sans-serif; color: white; }
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Orbitron', sans-serif; color: white; -webkit-user-select: none; }
         canvas { display: block; }
 
-        /* INTERFACE */
-        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(15px); background: rgba(0,0,0,0.8); transition: 0.3s; }
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(15px); background: rgba(0,0,0,0.85); text-align: center; }
         .hidden { display: none !important; }
         
-        h1 { font-size: 2.5rem; text-align: center; color: #fff; text-shadow: 0 0 20px var(--neon); margin: 0 0 30px 0; }
-        .btn { pointer-events: auto; background: none; border: 2px solid var(--neon); color: var(--neon); padding: 15px 40px; font-family: 'Orbitron'; font-weight: 900; border-radius: 5px; margin: 10px; cursor: pointer; width: 260px; text-transform: uppercase; }
-        .btn:active { background: var(--neon); color: #000; box-shadow: 0 0 30px var(--neon); }
+        h1 { font-size: 2rem; color: #fff; text-shadow: 0 0 20px var(--neon); margin-bottom: 20px; }
+        h2 { font-size: 1rem; color: var(--pink); margin-bottom: 15px; }
+
+        .btn { background: none; border: 2px solid var(--neon); color: var(--neon); padding: 12px 30px; font-family: 'Orbitron'; font-weight: 900; border-radius: 5px; margin: 8px; cursor: pointer; width: 250px; text-transform: uppercase; font-size: 14px; }
+        .btn:active { background: var(--neon); color: #000; }
         .btn-pink { border-color: var(--pink); color: var(--pink); }
 
-        #hud { position: absolute; top: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; z-index: 50; pointer-events: none; }
-        #pause-trigger { pointer-events: auto; background: rgba(255,255,255,0.1); border: 1px solid var(--neon); color: var(--neon); padding: 10px 15px; border-radius: 5px; font-weight: 900; }
-        .stat-val { color: var(--neon); text-shadow: 0 0 10px var(--neon); font-size: 1.2rem; }
+        /* SLIDER STYLE */
+        .slider-box { margin: 15px 0; width: 250px; }
+        input[type=range] { width: 100%; accent-color: var(--neon); }
+
+        #hud { position: absolute; top: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; z-index: 50; pointer-events: none; }
+        .hud-val { color: var(--neon); text-shadow: 0 0 10px var(--neon); font-size: 1rem; font-weight: 900; }
+        #pause-btn { pointer-events: auto; background: rgba(0,255,255,0.1); border: 1px solid var(--neon); color: var(--neon); padding: 8px; border-radius: 5px; font-family: 'Orbitron'; font-size: 10px; }
     </style>
 </head>
 <body>
 
     <div id="hud">
-        <div><div class="stat-val">SCORE: <span id="cur-score">0</span></div></div>
-        <button id="pause-trigger" onclick="game.togglePause()">PAUSE</button>
+        <div>
+            <div class="hud-val">SCORE: <span id="score-txt">0</span></div>
+            <div id="biome-txt" style="font-size: 10px; color: #aaa;">BIOME: ESPACE</div>
+        </div>
+        <button id="pause-btn" onclick="game.togglePause()">PAUSE</button>
     </div>
 
     <div id="menu-main" class="overlay">
         <h1>CYBER-CACA</h1>
-        <button class="btn" onclick="game.start()">ENGAGE</button>
+        <button class="btn" onclick="game.start()">COMMENCER</button>
+        <button class="btn btn-pink" onclick="showMenu('menu-settings')">PARAMÈTRES</button>
+        <button class="btn btn-pink" onclick="showMenu('menu-diff')">DIFFICULTÉ</button>
+    </div>
+
+    <div id="menu-diff" class="overlay hidden">
+        <h1>DIFFICULTÉ</h1>
+        <button class="btn" onclick="game.setDiff(1, 'RECRUE')">RECRUE</button>
+        <button class="btn" onclick="game.setDiff(1.5, 'EXPERT')">EXPERT</button>
+        <button class="btn btn-pink" onclick="game.setDiff(2.5, 'CACA MASTER')">CACA MASTER</button>
+        <button class="btn" style="border:none; font-size:10px" onclick="showMenu('menu-main')">RETOUR</button>
+    </div>
+
+    <div id="menu-settings" class="overlay hidden">
+        <h1>SENSIVITÉ</h1>
+        <div class="slider-box">
+            <input type="range" id="sensi-range" min="1" max="5" step="0.5" value="2" onchange="game.sensi = this.value">
+        </div>
+        <button class="btn" onclick="showMenu('menu-main')">SAUVEGARDER</button>
     </div>
 
     <div id="menu-pause" class="overlay hidden">
         <h1>PAUSE</h1>
         <button class="btn" onclick="game.togglePause()">REPRENDRE</button>
-        <button class="btn btn-pink" onclick="game.quitToMenu()">MENU</button>
+        <button class="btn btn-pink" onclick="game.quit()">MENU PRINCIPAL</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -50,116 +76,133 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // ASSETS
-        const img = new Image(); img.src = 'image.JPEG';
-        const music = new Audio('caca.mp3'); music.loop = true; music.volume = 0.5;
-        
-        // Fonction pour jouer le son de tir sans couper la musique
-        function playShootSound() {
-            const shot = new Audio('tire.mp3');
-            shot.volume = 0.8;
-            shot.play();
+        function showMenu(id) {
+            document.querySelectorAll('.overlay').forEach(m => m.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
         }
+
+        const music = new Audio('caca.mp3'); music.loop = true;
+        const shotSound = new Audio('tire.mp3'); shotSound.preload = 'auto';
+
+        const biomes = [
+            { name: "ESPACE", bg: "#000810", color: "#0ff", icon: "💩" },
+            { name: "VOLCAN", bg: "#200000", color: "#f00", icon: "🔥" },
+            { name: "TOXIQUE", bg: "#001a00", color: "#39ff14", icon: "🤮" },
+            { name: "CYBER", bg: "#1a001a", color: "#f0f", icon: "👾" }
+        ];
 
         const game = {
             state: 'MENU',
             score: 0,
+            diffMult: 1,
+            sensi: 2,
+            biomeIdx: 0,
             playerX: canvas.width / 2 - 45,
-            enemies: [],
-            lasers: [],
+            targetX: canvas.width / 2 - 45,
+            enemies: [], lasers: [],
+            img: new Image(),
+
+            init() {
+                this.img.src = 'image.JPEG';
+                this.render();
+            },
 
             start() {
                 this.state = 'PLAYING';
-                this.score = 0;
-                this.enemies = [];
-                this.lasers = [];
-                document.getElementById('menu-main').classList.add('hidden');
-                music.play().catch(() => {});
-                this.spawn();
-                this.render();
+                this.score = 0; this.biomeIdx = 0;
+                this.enemies = []; this.lasers = [];
+                showMenu('none');
+                music.currentTime = 0; music.play();
+                this.loop();
+            },
+
+            setDiff(m, txt) {
+                this.diffMult = m;
+                alert("Mode " + txt + " activé !");
+                showMenu('menu-main');
             },
 
             togglePause() {
                 if (this.state === 'PLAYING') {
-                    this.state = 'PAUSED';
-                    music.pause();
-                    document.getElementById('menu-pause').classList.remove('hidden');
+                    this.state = 'PAUSED'; music.pause();
+                    showMenu('menu-pause');
                 } else if (this.state === 'PAUSED') {
-                    this.state = 'PLAYING';
-                    music.play();
-                    document.getElementById('menu-pause').classList.add('hidden');
+                    this.state = 'PLAYING'; music.play();
+                    showMenu('none');
+                    this.loop();
                 }
             },
 
-            quitToMenu() {
-                this.state = 'MENU';
-                music.pause();
-                document.getElementById('menu-pause').classList.add('hidden');
-                document.getElementById('menu-main').classList.remove('hidden');
-            },
-
-            spawn() {
-                if (this.state !== 'PLAYING') return;
-                this.enemies.push({
-                    x: Math.random() * (canvas.width - 60),
-                    y: -60,
-                    s: Math.random() * 40 + 40,
-                    spd: 5 + (this.score / 100)
-                });
-                setTimeout(() => this.spawn(), 700);
+            quit() {
+                this.state = 'MENU'; music.pause();
+                showMenu('menu-main');
             },
 
             update() {
-                if (this.state !== 'PLAYING') return;
+                // Biome check
+                this.biomeIdx = Math.min(biomes.length - 1, Math.floor(this.score / 200));
+                document.getElementById('biome-txt').innerText = "BIOME: " + biomes[this.biomeIdx].name;
+
+                // Player Smooth Move
+                this.playerX += (this.targetX - this.playerX) * (0.1 * this.sensi);
 
                 this.lasers.forEach((l, i) => {
                     l.y -= 15;
-                    if (l.y < 0) this.lasers.splice(i, 1);
+                    if (l.y < -20) this.lasers.splice(i, 1);
                 });
+
+                if (Math.random() < 0.02 * this.diffMult) {
+                    this.enemies.push({ x: Math.random()*(canvas.width-50), y: -50, s: Math.random()*30+40, spd: (3 + this.score/150) * (this.diffMult*0.8) });
+                }
 
                 this.enemies.forEach((en, i) => {
                     en.y += en.spd;
                     this.lasers.forEach((l, li) => {
-                        if (Math.hypot(en.x + en.s/2 - l.x, en.y + en.s/2 - l.y) < en.s/1.2) {
-                            this.enemies.splice(i, 1);
-                            this.lasers.splice(li, 1);
+                        if (Math.hypot(en.x + en.s/2 - l.x, en.y - l.y) < en.s) {
+                            this.enemies.splice(i, 1); this.lasers.splice(li, 1);
                             this.score += 10;
-                            document.getElementById('cur-score').innerText = this.score;
+                            document.getElementById('score-txt').innerText = this.score;
                         }
                     });
-                    if (en.y > canvas.height - 160 && Math.abs((en.x + en.s/2) - (this.playerX + 45)) < 50) this.quitToMenu();
+                    if (en.y > canvas.height - 150 && Math.abs((en.x + en.s/2) - (this.playerX + 45)) < 40) this.quit();
+                    if (en.y > canvas.height + 50) this.enemies.splice(i, 1);
                 });
             },
 
             draw() {
-                ctx.fillStyle = '#000818';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.shadowBlur = 15; ctx.shadowColor = '#0ff';
-                ctx.drawImage(img, this.playerX, canvas.height - 150, 90, 90);
-                ctx.fillStyle = '#39ff14';
+                let b = biomes[this.biomeIdx];
+                ctx.fillStyle = b.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.shadowBlur = 15; ctx.shadowColor = b.color;
+                ctx.drawImage(this.img, this.playerX, canvas.height - 150, 90, 90);
+
+                ctx.fillStyle = b.color;
                 this.lasers.forEach(l => ctx.fillRect(l.x, l.y, 4, 25));
+
                 ctx.shadowBlur = 0;
-                this.enemies.forEach(en => { ctx.font = en.s + "px serif"; ctx.fillText("💩", en.x, en.y); });
+                this.enemies.forEach(en => { ctx.font = en.s + "px serif"; ctx.fillText(b.icon, en.x, en.y); });
             },
 
-            render() {
-                if (this.state === 'MENU') return;
+            loop() {
+                if (this.state !== 'PLAYING') return;
                 this.update();
                 this.draw();
-                requestAnimationFrame(() => this.render());
+                requestAnimationFrame(() => this.loop());
             }
         };
 
         window.addEventListener('touchmove', (e) => {
-            if(game.state === 'PLAYING') game.playerX = e.touches[0].clientX - 45;
+            if(game.state === 'PLAYING') game.targetX = e.touches[0].clientX - 45;
         });
 
         window.addEventListener('touchstart', (e) => {
-            if(game.state === 'PLAYING' && e.target.id !== 'pause-trigger') {
+            if(game.state === 'PLAYING' && e.target.id !== 'pause-btn') {
                 game.lasers.push({ x: game.playerX + 45, y: canvas.height - 150 });
-                playShootSound(); // On déclenche le nouveau son ici
+                let s = shotSound.cloneNode(); s.volume = 0.4; s.play();
             }
         });
+
+        game.init();
     </script>
 </body>
 </html>
