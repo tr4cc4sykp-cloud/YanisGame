@@ -3,28 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CYBER-CACA ENGINE</title>
+    <title>CYBER-CACA ULTRA</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Orbitron', sans-serif; color: white; user-select: none; }
         canvas { display: block; }
-        .ui { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); z-index: 100; }
+        .ui { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 100; backdrop-filter: blur(10px); }
         .hidden { display: none !important; }
-        .btn { background: none; border: 2px solid #0ff; color: #0ff; padding: 15px; font-family: 'Orbitron'; margin: 10px; width: 250px; border-radius: 8px; font-weight: bold; }
+        h1 { font-size: 2.5rem; color: #0ff; text-shadow: 0 0 20px #0ff; margin-bottom: 30px; }
+        .btn { background: none; border: 2px solid #0ff; color: #0ff; padding: 15px; font-family: 'Orbitron'; width: 250px; border-radius: 50px; font-weight: bold; margin: 10px; text-transform: uppercase; transition: 0.3s; }
+        .btn:active { background: #0ff; color: #000; }
         #hud { position: absolute; top: 10px; width: 100%; padding: 0 20px; box-sizing: border-box; display: flex; justify-content: space-between; z-index: 50; pointer-events: none; }
+        #b-bar { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 200px; height: 10px; border: 1px solid #f00; display: none; background: #000; }
     </style>
 </head>
 <body>
 
     <div id="hud">
-        <div id="score-display">SCORE: 0</div>
-        <button style="pointer-events:auto; background:none; border:1px solid #0ff; color:#0ff;" onclick="game.pause()">PAUSE</button>
+        <div id="score-txt">SCORE: 0<br><span id="biome-name" style="font-size:10px">ESPACE</span></div>
+        <button style="pointer-events:auto; background:none; border:1px solid #0ff; color:#0ff; padding:5px 10px;" onclick="game.pause()">PAUSE</button>
     </div>
+
+    <div id="b-bar"><div id="b-fill" style="width:100%; height:100%; background:#f00;"></div></div>
 
     <div id="menu-main" class="ui">
         <h1>CYBER-CACA</h1>
-        <button class="btn" onclick="game.start()">JOUER</button>
-        <div id="extra-menu-btns"></div>
+        <button class="btn" onclick="game.start()">COMMENCER</button>
+        <div style="margin-top:20px; font-size:12px;">SENSIBILITÉ</div>
+        <input type="range" id="sensi" min="1" max="10" value="5" style="width:200px; accent-color:#0ff">
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -39,42 +45,115 @@
         const music = new Audio('caca.mp3'); music.loop = true;
         const shotSound = new Audio('tire.mp3');
 
+        const biomes = [
+            { name: "NÉBULEUSE BLEUE", bg: "#000815", color: "#0ff", icon: "💩", boss: "🛸", stars: "#fff" },
+            { name: "ENFER DE SOUFRE", bg: "#250000", color: "#ff4500", icon: "🔥", boss: "🌋", stars: "#f00" },
+            { name: "MARÉCAGE TOXIQUE", bg: "#051505", color: "#39ff14", icon: "🤮", boss: "👁️", stars: "#0f0" },
+            { name: "FAILLE CYBER", bg: "#150015", color: "#ff00ff", icon: "👾", boss: "👺", stars: "#f0f" }
+        ];
+
         const game = {
             active: false, paused: false, score: 0,
             playerX: canvas.width/2-45, targetX: canvas.width/2-45,
-            enemies: [], lasers: [],
-            
-            start() { 
-                this.active = true; 
+            enemies: [], lasers: [], stars: [], boss: null,
+
+            initStars() {
+                this.stars = [];
+                for(let i=0; i<50; i++) this.stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2});
+            },
+
+            start() {
+                this.active = true;
+                this.initStars();
                 document.getElementById('menu-main').classList.add('hidden');
                 music.play().catch(()=>{});
                 this.loop();
             },
+
             pause() { if(this.active) this.paused = !this.paused; },
-            
+
             update() {
                 if(!this.active || this.paused) return;
-                this.playerX += (this.targetX - this.playerX) * 0.1;
-                if(Math.random() < 0.02) this.enemies.push({ x: Math.random()*(canvas.width-50), y: -50, spd: 4 });
-                this.lasers.forEach((l, i) => { l.y -= 15; if(l.y < -20) this.lasers.splice(i,1); });
+                
+                let bIdx = Math.min(biomes.length - 1, Math.floor(this.score / 300));
+                let b = biomes[bIdx];
+
+                // Mouvement fluide
+                let sVal = document.getElementById('sensi').value / 40;
+                this.playerX += (this.targetX - this.playerX) * sVal;
+
+                // Etoiles (Décor défilant)
+                this.stars.forEach(s => {
+                    s.y += 2;
+                    if(s.y > canvas.height) s.y = 0;
+                });
+
+                // Ennemis
+                if(!this.boss && Math.random() < 0.02) {
+                    this.enemies.push({ x: Math.random()*(canvas.width-50), y: -50, spd: 3 + (this.score/500) });
+                }
+
+                // Boss Spawn
+                if(this.score > 0 && this.score % 500 === 0 && !this.boss) {
+                    this.boss = { x: canvas.width/2-50, y: -100, hp: 100, dir: 1 };
+                    document.getElementById('b-bar').style.display = 'block';
+                }
+
+                // Lasers logic
+                this.lasers.forEach((l, i) => {
+                    l.y -= 15;
+                    if(this.boss && l.x > this.boss.x && l.x < this.boss.x+100 && l.y < this.boss.y+80) {
+                        this.boss.hp -= 5; this.lasers.splice(i, 1);
+                        document.getElementById('b-fill').style.width = this.boss.hp + "%";
+                        if(this.boss.hp <= 0) { this.boss = null; this.score += 150; document.getElementById('b-bar').style.display = 'none'; }
+                    }
+                    if(l.y < -20) this.lasers.splice(i, 1);
+                });
+
                 this.enemies.forEach((en, i) => {
                     en.y += en.spd;
                     this.lasers.forEach((l, li) => {
-                        if(Math.hypot(en.x+20-l.x, en.y-l.y) < 40) { this.enemies.splice(i,1); this.lasers.splice(li,1); this.score += 10; }
+                        if(Math.hypot(en.x+25-l.x, en.y-l.y) < 40) {
+                            this.enemies.splice(i, 1); this.lasers.splice(li, 1);
+                            this.score += 10;
+                        }
                     });
-                    if(en.y > canvas.height - 140 && Math.abs(en.x+20-(this.playerX+45)) < 40) location.reload();
-                    document.getElementById('score-display').innerText = "SCORE: " + this.score;
+                    if(en.y > canvas.height - 140 && Math.abs(en.x+25-(this.playerX+45)) < 40) location.reload();
                 });
-                if(window.updateExtras) window.updateExtras();
+
+                document.getElementById('score-txt').innerHTML = `SCORE: ${this.score}<br><span style="color:${b.color}">${b.name}</span>`;
             },
 
             draw() {
-                ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
-                ctx.fillStyle = "#0ff";
-                this.lasers.forEach(l => ctx.fillRect(l.x, l.y, 4, 20));
+                let bIdx = Math.min(biomes.length - 1, Math.floor(this.score / 300));
+                let b = biomes[bIdx];
+
+                // Background & Stars
+                ctx.fillStyle = b.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = b.stars;
+                this.stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+
+                // Lasers
+                ctx.fillStyle = b.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = b.color;
+                this.lasers.forEach(l => ctx.fillRect(l.x, l.y, 4, 25));
+
+                // Player
+                ctx.shadowBlur = 0;
                 ctx.drawImage(playerImg, this.playerX, canvas.height-150, 90, 90);
-                this.enemies.forEach(en => { ctx.font = "40px serif"; ctx.fillText("💩", en.x, en.y); });
-                if(window.drawExtras) window.drawExtras();
+
+                // Enemies
+                ctx.font = "40px serif";
+                this.enemies.forEach(en => ctx.fillText(b.icon, en.x, en.y));
+
+                // Boss
+                if(this.boss) {
+                    this.boss.x += 3 * this.boss.dir;
+                    if(this.boss.x > canvas.width-100 || this.boss.x < 0) this.boss.dir *= -1;
+                    if(this.boss.y < 80) this.boss.y += 1;
+                    ctx.font = "100px serif";
+                    ctx.fillText(b.boss, this.boss.x, this.boss.y + 80);
+                }
             },
 
             loop() {
@@ -83,104 +162,14 @@
             }
         };
 
-        window.addEventListener('touchmove', (e) => { game.targetX = e.touches[0].clientX - 45; });
+        window.addEventListener('touchmove', (e) => { game.targetX = e.touches[0].clientX - 45; }, {passive: false});
         window.addEventListener('touchstart', (e) => {
-            if(game.active && !game.paused && e.target.tagName !== 'BUTTON') {
+            if(game.active && !game.paused && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
                 game.lasers.push({ x: game.playerX + 45, y: canvas.height - 140 });
                 let s = shotSound.cloneNode(); s.volume = 0.3; s.play();
+                if(music.paused) music.play();
             }
         });
-
-        /* --- EXTENSIONS --- */
-// --- EXTENSION : SYSTÈME DE BIOMES ---
-const biomes = [
-    { name: "ESPACE", bg: "#000815", color: "#0ff", icon: "💩" },
-    { name: "VOLCAN", bg: "#250000", color: "#f33", icon: "🔥" },
-    { name: "TOXIQUE", bg: "#002000", color: "#3f3", icon: "🤢" },
-    { name: "CYBER", bg: "#150015", color: "#f0f", icon: "👾" }
-];
-
-window.updateExtras = function() {
-    // Calcule le biome actuel selon le score
-    let biomeIdx = Math.min(biomes.length - 1, Math.floor(game.score / 200));
-    let b = biomes[biomeIdx];
-    
-    // Met à jour l'affichage du score et du biome
-    document.getElementById('score-display').innerHTML = `SCORE: ${game.score}<br><span style="font-size:12px; color:${b.color}">${b.name}</span>`;
-    
-    // On injecte l'icône et la couleur dans le moteur
-    game.currentIcon = b.icon;
-    game.currentColor = b.color;
-    game.currentBg = b.bg;
-};
-
-window.drawExtras = function() {
-    // Cette fonction s'exécute après le dessin de base pour modifier l'ambiance
-    ctx.globalCompositeOperation = 'destination-over';
-    ctx.fillStyle = game.currentBg || "#000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = 'source-over';
-    
-    // Change la couleur des tirs dynamiquement
-    ctx.fillStyle = game.currentColor || "#0ff";
-    game.lasers.forEach(l => ctx.fillRect(l.x, l.y, 4, 20));
-
-    // Change les ennemis dynamiquement
-    game.enemies.forEach(en => {
-        ctx.font = "40px serif";
-        ctx.fillText(game.currentIcon || "💩", en.x, en.y);
-    });
-};
-// --- EXTENSION : SYSTÈME DE BOSS GÉANT ---
-
-// Création de la barre de vie
-const bBar = document.createElement('div');
-bBar.style = "position:absolute; top:50px; left:50%; transform:translateX(-50%); width:200px; height:10px; border:2px solid #f00; display:none; z-index:60; background:#000;";
-bBar.innerHTML = '<div id="b-fill" style="width:100%; height:100%; background:#f00;"></div>';
-document.body.appendChild(bBar);
-
-let bData = { active: false, hp: 100, x: 0, y: -100, dir: 1 };
-
-// On ajoute la logique au moteur existant
-const oldUpdate = window.updateExtras;
-window.updateExtras = function() {
-    if (oldUpdate) oldUpdate();
-
-    // Apparition du Boss tous les 500 points
-    if (game.score > 0 && game.score % 500 === 0 && !bData.active) {
-        bData.active = true; bData.hp = 100; bData.y = -100;
-        bBar.style.display = 'block';
-    }
-
-    if (bData.active) {
-        if (bData.y < 60) bData.y += 2;
-        bData.x += 3 * bData.dir;
-        if (bData.x > canvas.width - 100 || bData.x < 0) bData.dir *= -1;
-
-        game.lasers.forEach((l, i) => {
-            if (l.x > bData.x && l.x < bData.x + 100 && l.y < bData.y + 80) {
-                bData.hp -= 4; game.lasers.splice(i, 1);
-                document.getElementById('b-fill').style.width = bData.hp + "%";
-                if (bData.hp <= 0) {
-                    bData.active = false; bBar.style.display = 'none';
-                    game.score += 150;
-                }
-            }
-        });
-    }
-};
-
-const oldDraw = window.drawExtras;
-window.drawExtras = function() {
-    if (oldDraw) oldDraw();
-    if (bData.active) {
-        ctx.font = "80px serif";
-        let icons = ["🛸", "🌋", "👁️", "👺"];
-        let icon = icons[Math.min(Math.floor(game.score / 200), 3)];
-        ctx.fillText(icon, bData.x, bData.y + 70);
-    }
-};
-
     </script>
 </body>
 </html>
