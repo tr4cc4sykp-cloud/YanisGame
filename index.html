@@ -3,215 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YANIS : POMPE MAN DELUXE</title>
+    <title>Yanis Game</title>
     <style>
-        :root { --gold: #f1c40f; --red: #e74c3c; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; touch-action: none; color: white; }
-        canvas { display: block; filter: saturate(1.2); }
-        
-        /* INTERFACE */
-        #ui { position: absolute; top: 0; width: 100%; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-between; z-index: 10; pointer-events: none; }
-        .stat-box { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; border: 2px solid var(--gold); min-width: 80px; text-align: center; }
-        .label { font-size: 10px; color: var(--gold); display: block; }
-        .val { font-size: 20px; }
-
-        /* MENUS */
-        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; padding: 30px; }
-        h1 { font-size: 2.8rem; color: var(--gold); margin: 0; text-shadow: 0 0 15px rgba(241, 196, 15, 0.5); line-height: 1; }
-        .best { font-size: 14px; margin: 10px 0 30px; color: #aaa; }
-        .btn-play { padding: 22px 50px; font-size: 1.6rem; background: var(--red); color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 8px 0 #c0392b; transition: 0.1s; }
-        .btn-play:active { transform: translateY(6px); box-shadow: 0 2px 0 #c0392b; }
-
-        /* EFFET POWER-UP */
-        #power-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 150px; height: 10px; background: #333; border-radius: 5px; display: none; }
-        #power-inner { width: 100%; height: 100%; background: var(--gold); border-radius: 5px; }
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; color: gold; font-weight: bold; pointer-events: none; }
     </style>
 </head>
 <body>
-
-<div id="ui">
-    <div class="stat-box"><span class="label">SCORE</span><span id="score" class="val">0</span></div>
-    <div class="stat-box"><span class="label">VIE</span><span id="lives" class="val">3</span></div>
-</div>
-
-<div id="overlay">
-    <h1 id="title">POMPE MAN<br>DELUXE</h1>
-    <div class="best">BEST SCORE: <span id="best">0</span></div>
-    <button class="btn-play" onclick="Game.start()">START GAME</button>
-</div>
-
-<div id="power-bar"><div id="power-inner"></div></div>
-
-<audio id="audio" loop><source src="caca.mp3" type="audio/mpeg"></audio>
-
-<canvas id="gameCanvas"></canvas>
-
-<script>
-const Game = (() => {
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const audio = document.getElementById('audio');
-    
-    // Chargement Image
-    const playerImg = new Image();
-    playerImg.src = 'image.JPG';
-
-    let state = { 
-        active: false, score: 0, lives: 3, frame: 0, 
-        speed: 5, power: 0, best: localStorage.getItem('bestYanis') || 0 
-    };
-
-    let player = { x: 0, y: 0, w: 90, h: 90, targetX: 0, invicible: false };
-    let items = [];
-    let particles = [];
-
-    const ITEMS_TYPES = [
-        { char: '🍔', type: 'good', score: 10 },
-        { char: '🍟', type: 'good', score: 5 },
-        { char: '⚡', type: 'power', score: 0 }, // Power-up
-        { char: '💩', type: 'bad', score: -20 },
-        { char: '🐀', type: 'bad', score: -10 }
-    ];
-
-    const init = () => {
+    <div id="ui">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>VIES: <span id="vie">3</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        player.y = canvas.height - 180;
-        player.x = canvas.width/2 - 45;
-        document.getElementById('best').innerText = state.best;
-        
-        window.addEventListener('touchmove', (e) => {
-            player.targetX = e.touches[0].clientX - player.w/2;
-        });
-        
-        loop();
-    };
 
-    const spawnItem = () => {
-        const it = ITEMS_TYPES[Math.floor(Math.random() * ITEMS_TYPES.length)];
-        items.push({
-            x: Math.random() * (canvas.width - 50),
-            y: -60,
-            dy: state.speed + (Math.random() * 2),
-            rot: Math.random() * Math.PI * 2,
-            ...it
-        });
-    };
+        let score = 0, vie = 3, gameActive = true;
+        const img = new Image();
+        img.src = 'image.JPEG'; // Respecte tes majuscules !
+        const audio = new Audio('caca.mp3');
+        audio.loop = true;
 
-    const update = () => {
-        if (!state.active) return;
-        state.frame++;
-        
-        // Mouvement fluide
-        player.x += (player.targetX - player.x) * 0.15;
-        if(player.x < 0) player.x = 0;
-        if(player.x > canvas.width - player.w) player.x = canvas.width - player.w;
+        let target = { x: 50, y: 50, size: 100, sx: 4, sy: 4 };
 
-        // Difficulté
-        if(state.frame % 35 === 0) spawnItem();
-        state.speed += 0.001;
+        function draw() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, target.x, target.y, target.size, target.size);
+            target.x += target.sx; target.y += target.sy;
+            if (target.x < 0 || target.x > canvas.width - target.size) target.sx *= -1;
+            if (target.y < 0 || target.y > canvas.height - target.size) target.sy *= -1;
+            requestAnimationFrame(draw);
+        }
 
-        items.forEach((it, i) => {
-            it.y += it.dy;
-            it.rot += 0.05;
-
-            // Collision
-            if (it.y + 30 > player.y && it.y < player.y + 40 &&
-                it.x + 30 > player.x && it.x < player.x + player.w) {
-                
-                if (it.type === 'power') activatePower();
-                else if (it.type === 'bad' && !player.invincibile) {
-                    state.lives--;
-                    if(state.lives <= 0) gameOver();
-                } else {
-                    state.score += it.score;
-                }
-                
-                items.splice(i, 1);
-                updateUI();
+        window.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            if (audio.paused) audio.play();
+            const t = e.touches[0];
+            if (t.clientX >= target.x && t.clientX <= target.x + target.size && t.clientY >= target.y && t.clientY <= target.y + target.size) {
+                score++; document.getElementById('score').innerText = score;
+                target.x = Math.random() * (canvas.width - 100);
+                target.y = Math.random() * (canvas.height - 100);
+                target.sx *= 1.1; target.sy *= 1.1;
+            } else {
+                vie--; document.getElementById('vie').innerText = vie;
+                if (vie <= 0) { gameActive = false; alert("Perdu ! Score: " + score); location.reload(); }
             }
-            if (it.y > canvas.height) items.splice(i, 1);
         });
-
-        // Power-up timer
-        if (state.power > 0) {
-            state.power -= 0.5;
-            document.getElementById('power-inner').style.width = state.power + '%';
-            if(state.power <= 0) {
-                player.invincibile = false;
-                document.getElementById('power-bar').style.display = 'none';
-            }
-        }
-    };
-
-    const activatePower = () => {
-        state.power = 100;
-        player.invincibile = true;
-        document.getElementById('power-bar').style.display = 'block';
-    };
-
-    const draw = () => {
-        // Fond dégradé
-        let grad = ctx.createLinearGradient(0,0,0,canvas.height);
-        grad.addColorStop(0, '#1a1a2e');
-        grad.addColorStop(1, '#16213e');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-
-        // Dessin Yanis
-        ctx.save();
-        if(player.invincibile) ctx.shadowBlur = 20, ctx.shadowColor = "gold";
-        if(playerImg.complete) {
-            ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
-        } else {
-            ctx.fillStyle = "gold"; ctx.fillRect(player.x, player.y, player.w, player.h);
-        }
-        ctx.restore();
-
-        // Objets
-        ctx.font = "45px Arial";
-        ctx.textAlign = "center";
-        items.forEach(it => {
-            ctx.save();
-            ctx.translate(it.x, it.y);
-            ctx.rotate(it.rot);
-            ctx.fillText(it.char, 0, 0);
-            ctx.restore();
-        });
-    };
-
-    const updateUI = () => {
-        document.getElementById('score').innerText = state.score;
-        document.getElementById('lives').innerText = state.lives;
-    };
-
-    const gameOver = () => {
-        state.active = false;
-        audio.pause();
-        if(state.score > state.best) {
-            localStorage.setItem('bestYanis', state.score);
-            state.best = state.score;
-        }
-        document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('title').innerHTML = "FIN DE SERVICE !<br><span style='color:white;font-size:1.5rem'>SCORE: "+state.score+"</span>";
-        document.getElementById('best').innerText = state.best;
-    };
-
-    const loop = () => { update(); draw(); requestAnimationFrame(loop); };
-
-    return {
-        start: () => {
-            state.active = true; state.score = 0; state.lives = 3; state.speed = 5; items = [];
-            updateUI();
-            document.getElementById('overlay').style.display = 'none';
-            audio.currentTime = 0;
-            audio.play();
-        },
-        init
-    };
-})();
-
-Game.init();
-</script>
+        img.onload = draw;
+    </script>
 </body>
 </html>
