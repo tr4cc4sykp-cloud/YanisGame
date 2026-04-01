@@ -3,136 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CACA POMPE MAN : THE GAME</title>
+    <title>CYBER-CACA DEFENDER : ULTIMATE</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
-        body { margin: 0; background: #2d1b0d; overflow: hidden; touch-action: none; font-family: 'Luckiest+Guy', cursive; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: #f1c40f; font-size: 30px; pointer-events: none; text-shadow: 3px 3px 0 #000; z-index: 10; }
-        #lyrics { position: absolute; bottom: 50px; width: 100%; text-align: center; color: #fff; font-size: 24px; text-shadow: 0 0 10px #ff00ff; pointer-events: none; z-index: 5; }
-        #menu { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; }
-        .btn { background: #8b4513; color: #fff; border: 4px solid #f1c40f; padding: 20px 40px; font-size: 25px; font-family: 'Luckiest Guy'; cursor: pointer; border-radius: 20px; box-shadow: 0 10px 0 #5d2e0a; }
-        .btn:active { transform: translateY(5px); box-shadow: 0 5px 0 #5d2e0a; }
-        h1 { font-size: 50px; color: #f1c40f; margin: 0; text-shadow: 5px 5px 0 #8b4513; text-align: center; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        
+        :root {
+            --neon-blue: #00ffff;
+            --neon-pink: #ff00ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #f1c40f;
+            --glow: 0 0 15px currentColor;
+        }
+
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Orbitron', sans-serif; color: white; -webkit-user-select: none; user-select: none; }
+        canvas { display: block; filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.3)); }
+
+        /* UI GENERALE */
+        .hud { position: absolute; font-size: 18px; color: var(--neon-blue); text-shadow: var(--glow); pointer-events: none; z-index: 10; font-weight: 900; }
+        #hud-score { top: 20px; left: 20px; }
+        #hud-bonus { bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
+        #hud-bonus.active { opacity: 1; }
+
+        /* MENU SYSTEM */
+        .menu-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.5s ease; backdrop-filter: blur(10px); background: rgba(0,0,0,0.8); }
+        .menu-overlay.hidden { opacity: 0; pointer-events: none; }
+        
+        h1 { font-size: 3rem; text-align: center; margin: 0; margin-bottom: 50px; background: linear-gradient(to right, #fff, var(--neon-blue), var(--neon-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px var(--neon-blue)); letter-spacing: 5px; }
+        
+        .btn-group { display: flex; flex-direction: column; gap: 20px; width: 80%; max-width: 300px; }
+        
+        .btn { 
+            background: none; 
+            border: 2px solid var(--neon-blue); 
+            color: var(--neon-blue); 
+            padding: 18px; 
+            font-size: 16px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn::before { content: ''; position: absolute; inset: -5px; border: 2px solid var(--neon-blue); border-radius: 8px; opacity: 0; transition: 0.2s; }
+        .btn:active { background: var(--neon-blue); color: #000; box-shadow: 0 0 30px var(--neon-blue); }
+        .btn:active::before { opacity: 1; animation: pulsate 0.5s infinite; }
+
+        .btn.btn-pink { border-color: var(--neon-pink); color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 0, 255, 0.3); }
+        .btn.btn-pink:active { background: var(--neon-pink); box-shadow: 0 0 30px var(--neon-pink); }
+        .btn.btn-pink::before { border-color: var(--neon-pink); }
+
+        /* SOUS-MENUS */
+        .submenu { display: none; flex-direction: column; gap: 15px; width: 100%; align-items: center; }
+        .submenu.active { display: flex; }
+        .back-btn { margin-top: 30px; font-size: 12px; color: #555; }
+
+        @keyframes pulsate { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div id="ui">SCORE: <span id="val">0</span></div>
-    <div id="lyrics">PRÊT POUR LA POMPE ?</div>
+    <div id="hud-score" class="hud">SCORE: 0</div>
+    <div id="hud-bonus" class="hud">LASER ACTIF!</div>
 
-    <div id="menu">
-        <h1>CACA POMPE MAN</h1>
-        <p style="color: #f1c40f; font-size: 20px;">Esquive les cacas astéroïdes !</p>
-        <button class="btn" onclick="start()">START THE CACA</button>
+    <div id="menu-main" class="menu-overlay">
+        <h1>CYBER-CACA</h1>
+        <div class="btn-group">
+            <button class="btn" onclick="startGame()">PLAY</button>
+            <button class="btn btn-pink" onclick="showSubmenu('difficulty')">DIFFICULTÉ</button>
+            <button class="btn btn-pink" onclick="showSubmenu('options')">OPTIONS</button>
+        }
     </div>
 
-    <canvas id="game"></canvas>
+    <div id="menu-difficulty" class="menu-overlay hidden">
+        <h1>DIFFICULTÉ</h1>
+        <div class="btn-group">
+            <button class="btn" onclick="setDiff(1)">RECRUE (X1)</button>
+            <button class="btn" onclick="setDiff(2)">EXPERT (X2)</button>
+            <button class="btn btn-pink" onclick="setDiff(3)">CACA MASTER (X3)</button>
+            <button class="btn back-btn" onclick="showSubmenu('main')">RETOUR</button>
+        </div>
+    </div>
+
+    <div id="menu-options" class="menu-overlay hidden">
+        <h1>OPTIONS</h1>
+        <div class="btn-group">
+            <button id="opt-sound" class="btn" onclick="toggleSound()">SON: ON</button>
+            <button class="btn back-btn" onclick="showSubmenu('main')">RETOUR</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('game');
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('val');
-        const lyricEl = document.getElementById('lyrics');
-        const menu = document.getElementById('menu');
-
-        let player = { x: 0, y: 0, size: 90, targetX: 0 };
-        let cacas = [], score = 0, active = false;
-        
-        // Paroles de la légende
-        const paroles = ["CACA CACA", "POMPE MAN DELUXE", "ÇAA POUSSE FORT", "CACA DANS L'ESPACE", "POMPE POUR TA VIE", "ATTENTION AU CACA !"];
-        let lyricIndex = 0;
-
-        const img = new Image(); img.src = 'image.JPEG';
-        const music = new Audio('caca.mp3'); music.loop = true;
+        const hudScore = document.getElementById('hud-score');
+        const hudBonus = document.getElementById('hud-bonus');
+        const menuMain = document.getElementById('menu-main');
+        const optSoundBtn = document.getElementById('opt-sound');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        function start() {
-            score = 0; cacas = []; active = true;
-            player.x = canvas.width / 2 - 45; player.y = canvas.height - 180;
-            player.targetX = player.x;
-            menu.style.display = 'none';
-            music.play();
-            spawnCaca();
-            changeLyrics();
+        let gameActive = false, score = 0, currentDiff = 1, soundOn = true;
+        let powerups = [], lasers = [], enemies = [], particles = [];
+        let time = 0;
+
+        // Fichiers (On garde tes noms)
+        const yanisImg = new Image(); yanisImg.src = 'image.JPEG';
+        const music = new Audio('caca.mp3'); music.loop = true;
+
+        // CONFIGURATION
+        const player = { x: 0, y: 0, size: 90, targetX: 0, bonus: null, bonusTimer: 0, shield: false };
+        const CYBER_COLORS = ['#0ff', '#f0f', '#39ff14', '#f1c40f'];
+
+        // --- GESTION DES MENUS ---
+        function showSubmenu(menuName) {
+            document.querySelectorAll('.menu-overlay').forEach(m => m.classList.add('hidden'));
+            document.getElementById('menu-' + menuName).classList.remove('hidden');
+        }
+
+        function setDiff(d) {
+            currentDiff = d;
+            showSubmenu('main');
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            optSoundBtn.innerText = soundOn ? "SON: ON" : "SON: OFF";
+            music.muted = !soundOn;
+        }
+
+        // --- LE JEU (MOTEUR PRO) ---
+        function startGame() {
+            score = 0; enemies = []; powerups = []; lasers = []; particles = [];
+            player.x = canvas.width / 2; player.y = canvas.height - 180;
+            player.targetX = player.x; player.bonus = null; player.shield = false;
+            gameActive = true;
+            menuMain.classList.add('hidden');
+            hudScore.innerText = "SCORE: 0";
+            if (soundOn) music.play().catch(()=>{});
             animate();
+            spawnLoop();
         }
 
-        function changeLyrics() {
-            if(!active) return;
-            lyricEl.innerText = paroles[lyricIndex];
-            lyricIndex = (lyricIndex + 1) % paroles.length;
-            setTimeout(changeLyrics, 2000);
+        function spawnLoop() {
+            if(!gameActive) return;
+            // Spawn Caca
+            enemies.push({ x: Math.random() * canvas.width, y: -60, size: Math.random() * 40 + 50, speed: (Math.random()*3 + 3) * currentDiff + (score/100) });
+            // Spawn Powerup (rare)
+            if(Math.random() < 0.1) powerups.push({ x: Math.random() * canvas.width, y: -40, type: (Math.random() < 0.7 ? 'laser' : 'shield'), size: 30, speed: 4 });
+            
+            setTimeout(spawnLoop, 1000 / currentDiff);
         }
 
-        function spawnCaca() {
-            if(!active) return;
-            cacas.push({
-                x: Math.random() * (canvas.width - 50),
-                y: -60,
-                size: Math.random() * 50 + 40,
-                speed: Math.random() * 4 + (score / 200) + 3,
-                rot: Math.random() * Math.PI * 2,
-                rotSpd: Math.random() * 0.1 - 0.05
-            });
-            setTimeout(spawnCaca, Math.max(150, 800 - score / 5));
+        function createParticles(x, y, color) {
+            for(let i=0; i<15; i++) particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, size: Math.random()*3+1, life: 30, color });
         }
 
-        canvas.addEventListener('touchmove', (e) => {
+        window.addEventListener('touchmove', (e) => {
             player.targetX = e.touches[0].clientX - player.size / 2;
         });
 
-        function drawCaca(c) {
-            ctx.save();
-            ctx.translate(c.x + c.size/2, c.y + c.size/2);
-            ctx.rotate(c.rot);
-            ctx.font = `${c.size}px serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText("💩", 0, 0); // L'astéroïde caca
-            ctx.restore();
-        }
-
+        // --- BOUCLE DE DESSIN ---
         function animate() {
-            if(!active) return;
-            ctx.fillStyle = '#2d1b0d';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if(!gameActive) return;
+            time += 0.01;
 
-            // Joueur suit le doigt
+            // FOND ULTRA STYLÉ (Espace + Grille Laser Glow)
+            ctx.fillStyle = '#00000a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Grille
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)'; ctx.lineWidth = 1;
+            for(let x=0; x<canvas.width; x+=50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(canvas.width/2 + (x-canvas.width/2)*1.5, canvas.height); ctx.stroke(); }
+            for(let y=0; y<canvas.height; y+=50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+            // Déplacement fluide Yanis
             player.x += (player.targetX - player.x) * 0.2;
 
-            // Dessin Yanis
-            ctx.drawImage(img, player.x, player.y, player.size, player.size);
+            // Dessin Yanis (avec Glow)
+            ctx.save();
+            ctx.shadowBlur = player.shield ? 25 : 15;
+            ctx.shadowColor = player.shield ? '#f0f' : '#0ff'; // Pink shield
+            if (player.bonus === 'laser') ctx.shadowColor = '#39ff14'; // Green laser glow
+            ctx.drawImage(yanisImg, player.x, player.y, player.size, player.size);
+            if(player.shield) { ctx.strokeStyle = '#f0f'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(player.x+player.size/2, player.y+player.size/2, player.size/1.5, 0, Math.PI*2); ctx.stroke(); }
+            ctx.restore();
 
-            // Gestion des cacas
-            cacas.forEach((c, i) => {
-                c.y += c.speed;
-                c.rot += c.rotSpd;
-                drawCaca(c);
+            // Gestion Bonus Laser
+            if(player.bonus === 'laser') {
+                player.bonusTimer -= 1/60;
+                hudBonus.innerText = `LASER ACTIF (${Math.ceil(player.bonusTimer)}s)`;
+                if(player.bonusTimer <= 0) { player.bonus = null; hudBonus.classList.remove('active'); }
+                // Tirer
+                if(time % 0.1 < 0.02) lasers.push({ x: player.x + player.size/2 - 2, y: player.y, speed: 15 });
+            }
 
-                // Collision simplifiée
-                if (c.y + c.size > player.y + 20 && c.y < player.y + player.size - 20 &&
-                    c.x + c.size > player.x + 20 && c.x < player.x + player.size - 20) {
-                    gameOver();
+            // Gestion Lasers
+            ctx.shadowBlur = 10; ctx.shadowColor = '#39ff14'; ctx.fillStyle = '#39ff14';
+            lasers.forEach((l, i) => {
+                l.y -= l.speed;
+                ctx.fillRect(l.x, l.y, 4, 30);
+                if(l.y < 0) lasers.splice(i, 1);
+            });
+
+            // Gestion Powerups
+            powerups.forEach((p, i) => {
+                p.y += p.speed;
+                ctx.save();
+                ctx.shadowBlur = 15; ctx.shadowColor = (p.type==='laser'?'#39ff14':'#f0f');
+                ctx.font = `${p.size}px serif`;
+                ctx.fillText((p.type==='laser'?'⚡':'🛡️'), p.x, p.y);
+                ctx.restore();
+
+                // Collision Player
+                if(Math.hypot(p.x - (player.x+player.size/2), p.y - (player.y+player.size/2)) < player.size/2) {
+                    if(p.type === 'laser') { player.bonus = 'laser'; player.bonusTimer = 10; hudBonus.classList.add('active'); }
+                    if(p.type === 'shield') player.shield = true;
+                    createParticles(p.x, p.y, CYBER_COLORS[Math.floor(Math.random()*CYBER_COLORS.length)]);
+                    powerups.splice(i, 1);
+                }
+                if(p.y > canvas.height) powerups.splice(i, 1);
+            });
+
+            // Gestion CacAs (💩)
+            ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
+            enemies.forEach((en, i) => {
+                en.y += en.speed;
+                ctx.font = `${en.size}px serif`; ctx.fillText("💩", en.x, en.y);
+
+                // Collision Player
+                let dx = en.x - (player.x+player.size/2);
+                let dy = en.y - (player.y+player.size/2);
+                if(Math.hypot(dx, dy) < (en.size/2 + player.size/3)) {
+                    if(player.shield) { player.shield = false; createParticles(en.x, en.y, '#f0f'); enemies.splice(i, 1); }
+                    else gameOver();
                 }
 
-                if(c.y > canvas.height) {
-                    cacas.splice(i, 1);
-                    score++;
-                    scoreEl.innerText = score;
-                }
+                // Collision Laser
+                lasers.forEach((l, li) => {
+                    if(Math.hypot(en.x - l.x, en.y - l.y) < en.size/1.5) {
+                        createParticles(en.x, en.y, '#39ff14');
+                        enemies.splice(i, 1); lasers.splice(li, 1);
+                        score += 10 * currentDiff; hudScore.innerText = "SCORE: " + score;
+                    }
+                });
+
+                if(en.y > canvas.height) { enemies.splice(i, 1); score += currentDiff; hudScore.innerText = "SCORE: " + score; }
+            });
+
+            // Particules
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life--; p.size *= 0.95; ctx.globalAlpha = p.life/30;
+                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+                if(p.life <= 0) particles.splice(i, 1);
             });
 
             requestAnimationFrame(animate);
         }
 
         function gameOver() {
-            active = false;
-            music.pause();
-            menu.style.display = 'flex';
-            menu.innerHTML = `<h1>T'AS TOUCHÉ LE CACA !</h1><p style='font-size:25px'>Score: ${score}</p><button class="btn" onclick="start()">RE-POMPER</button>`;
+            gameActive = false; music.pause();
+            menuMain.classList.remove('hidden');
+            document.querySelector('h1').innerText = "MISSION ÉCHOUÉE";
+            document.querySelector('.btn-group').innerHTML = `<button class="btn" onclick="startGame()">RÉESSAYER</button><button class="btn back-btn" onclick="location.reload()">RETOUR MENU</button>`;
         }
     </script>
 </body>
