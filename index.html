@@ -3,53 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CYBER-CACA : PRO EDITION</title>
+    <title>CYBER-CACA : OMEGA SOUND EDITION</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
-        
         :root { --neon: #00ffff; --pink: #ff00ff; }
         body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Orbitron', sans-serif; color: white; }
         canvas { display: block; }
 
-        /* INTERFACE COMMUNE */
+        /* INTERFACE */
         .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(15px); background: rgba(0,0,0,0.8); transition: 0.3s; }
-        .hidden { opacity: 0; pointer-events: none; display: none; }
+        .hidden { display: none !important; }
         
         h1 { font-size: 2.5rem; text-align: center; color: #fff; text-shadow: 0 0 20px var(--neon); margin: 0 0 30px 0; }
         .btn { pointer-events: auto; background: none; border: 2px solid var(--neon); color: var(--neon); padding: 15px 40px; font-family: 'Orbitron'; font-weight: 900; border-radius: 5px; margin: 10px; cursor: pointer; width: 260px; text-transform: uppercase; }
         .btn:active { background: var(--neon); color: #000; box-shadow: 0 0 30px var(--neon); }
         .btn-pink { border-color: var(--pink); color: var(--pink); }
-        .btn-pink:active { background: var(--pink); box-shadow: 0 0 30px var(--pink); }
 
-        /* HUD & PAUSE */
         #hud { position: absolute; top: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; z-index: 50; pointer-events: none; }
         #pause-trigger { pointer-events: auto; background: rgba(255,255,255,0.1); border: 1px solid var(--neon); color: var(--neon); padding: 10px 15px; border-radius: 5px; font-weight: 900; }
-        
         .stat-val { color: var(--neon); text-shadow: 0 0 10px var(--neon); font-size: 1.2rem; }
-        #best-score { font-size: 0.8rem; color: #aaa; }
     </style>
 </head>
 <body>
 
     <div id="hud">
-        <div>
-            <div class="stat-val">SCORE: <span id="cur-score">0</span></div>
-            <div id="best-score">BEST: 0</div>
-        </div>
+        <div><div class="stat-val">SCORE: <span id="cur-score">0</span></div></div>
         <button id="pause-trigger" onclick="game.togglePause()">PAUSE</button>
     </div>
 
     <div id="menu-main" class="overlay">
         <h1>CYBER-CACA</h1>
-        <button class="btn" onclick="game.start()">JOUER</button>
-        <button class="btn btn-pink" onclick="alert('Bientôt: Skins de Caca !')">BOUTIQUE</button>
-        <button class="btn btn-pink" onclick="game.resetBest()">RESET SCORE</button>
+        <button class="btn" onclick="game.start()">ENGAGE</button>
     </div>
 
     <div id="menu-pause" class="overlay hidden">
         <h1>PAUSE</h1>
         <button class="btn" onclick="game.togglePause()">REPRENDRE</button>
-        <button class="btn btn-pink" onclick="game.quitToMenu()">MENU PRINCIPAL</button>
+        <button class="btn btn-pink" onclick="game.quitToMenu()">MENU</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -60,21 +50,23 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // ASSETS
         const img = new Image(); img.src = 'image.JPEG';
-        const music = new Audio('caca.mp3'); music.loop = true;
+        const music = new Audio('caca.mp3'); music.loop = true; music.volume = 0.5;
+        
+        // Fonction pour jouer le son de tir sans couper la musique
+        function playShootSound() {
+            const shot = new Audio('tire.mp3');
+            shot.volume = 0.8;
+            shot.play();
+        }
 
         const game = {
-            state: 'MENU', // MENU, PLAYING, PAUSED
+            state: 'MENU',
             score: 0,
-            bestScore: localStorage.getItem('yanisBest') || 0,
             playerX: canvas.width / 2 - 45,
             enemies: [],
             lasers: [],
-
-            init() {
-                document.getElementById('best-score').innerText = "BEST: " + this.bestScore;
-                this.render();
-            },
 
             start() {
                 this.state = 'PLAYING';
@@ -82,9 +74,9 @@
                 this.enemies = [];
                 this.lasers = [];
                 document.getElementById('menu-main').classList.add('hidden');
-                document.getElementById('cur-score').innerText = "0";
                 music.play().catch(() => {});
                 this.spawn();
+                this.render();
             },
 
             togglePause() {
@@ -102,7 +94,6 @@
             quitToMenu() {
                 this.state = 'MENU';
                 music.pause();
-                music.currentTime = 0;
                 document.getElementById('menu-pause').classList.add('hidden');
                 document.getElementById('menu-main').classList.remove('hidden');
             },
@@ -113,9 +104,9 @@
                     x: Math.random() * (canvas.width - 60),
                     y: -60,
                     s: Math.random() * 40 + 40,
-                    spd: 4 + (this.score / 150)
+                    spd: 5 + (this.score / 100)
                 });
-                setTimeout(() => this.spawn(), 800);
+                setTimeout(() => this.spawn(), 700);
             },
 
             update() {
@@ -128,8 +119,6 @@
 
                 this.enemies.forEach((en, i) => {
                     en.y += en.spd;
-                    
-                    // Hit detection
                     this.lasers.forEach((l, li) => {
                         if (Math.hypot(en.x + en.s/2 - l.x, en.y + en.s/2 - l.y) < en.s/1.2) {
                             this.enemies.splice(i, 1);
@@ -138,55 +127,26 @@
                             document.getElementById('cur-score').innerText = this.score;
                         }
                     });
-
-                    // Game Over
-                    if (en.y > canvas.height - 160 && Math.abs((en.x + en.s/2) - (this.playerX + 45)) < 50) {
-                        this.gameOver();
-                    }
-                    if (en.y > canvas.height) this.enemies.splice(i, 1);
+                    if (en.y > canvas.height - 160 && Math.abs((en.x + en.s/2) - (this.playerX + 45)) < 50) this.quitToMenu();
                 });
             },
 
             draw() {
-                ctx.fillStyle = '#000810';
+                ctx.fillStyle = '#000818';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Player
                 ctx.shadowBlur = 15; ctx.shadowColor = '#0ff';
                 ctx.drawImage(img, this.playerX, canvas.height - 150, 90, 90);
-
-                // Lasers
                 ctx.fillStyle = '#39ff14';
                 this.lasers.forEach(l => ctx.fillRect(l.x, l.y, 4, 25));
-
-                // Enemies
                 ctx.shadowBlur = 0;
-                this.enemies.forEach(en => {
-                    ctx.font = en.s + "px serif";
-                    ctx.fillText("💩", en.x, en.y);
-                });
+                this.enemies.forEach(en => { ctx.font = en.s + "px serif"; ctx.fillText("💩", en.x, en.y); });
             },
 
             render() {
+                if (this.state === 'MENU') return;
                 this.update();
                 this.draw();
                 requestAnimationFrame(() => this.render());
-            },
-
-            gameOver() {
-                if(this.score > this.bestScore) {
-                    this.bestScore = this.score;
-                    localStorage.setItem('yanisBest', this.bestScore);
-                    document.getElementById('best-score').innerText = "BEST: " + this.bestScore;
-                }
-                this.quitToMenu();
-                alert("GAME OVER ! SCORE: " + this.score);
-            },
-
-            resetBest() {
-                localStorage.removeItem('yanisBest');
-                this.bestScore = 0;
-                document.getElementById('best-score').innerText = "BEST: 0";
             }
         };
 
@@ -197,10 +157,9 @@
         window.addEventListener('touchstart', (e) => {
             if(game.state === 'PLAYING' && e.target.id !== 'pause-trigger') {
                 game.lasers.push({ x: game.playerX + 45, y: canvas.height - 150 });
+                playShootSound(); // On déclenche le nouveau son ici
             }
         });
-
-        game.init();
     </script>
 </body>
 </html>
